@@ -1,0 +1,115 @@
+server:
+  port: 8091
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        # Main Service Routes
+        - id: main-service
+          uri: lb://main-service
+          predicates:
+            - Path=/api/main/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: mainServiceBreaker
+                fallbackUri: forward:/fallback/main
+        
+        # Matching Service Routes
+        - id: matching-service
+          uri: lb://matching-service
+          predicates:
+            - Path=/api/matching/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: matchingServiceBreaker
+                fallbackUri: forward:/fallback/matching
+        
+        # Print Service Routes
+        - id: print-service
+          uri: lb://print-service
+          predicates:
+            - Path=/api/print/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: printServiceBreaker
+                fallbackUri: forward:/fallback/print
+        
+        # Vocabulary Service Routes
+        - id: vocabulary-service
+          uri: lb://vocabulary-service
+          predicates:
+            - Path=/api/vocabulary/**
+          filters:
+            - StripPrefix=1
+            - name: CircuitBreaker
+              args:
+                name: vocabularyServiceBreaker
+                fallbackUri: forward:/fallback/vocabulary
+      
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - PATCH
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: false
+            maxAge: 3600
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,gateway
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+    instances:
+      mainServiceBreaker:
+        baseConfig: default
+      matchingServiceBreaker:
+        baseConfig: default
+      printServiceBreaker:
+        baseConfig: default
+      vocabularyServiceBreaker:
+        baseConfig: default
+
+logging:
+  level:
+    org.springframework.cloud.gateway: DEBUG
+    org.springframework.web: INFO
+

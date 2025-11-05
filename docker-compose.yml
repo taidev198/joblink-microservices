@@ -1,0 +1,170 @@
+services:
+  # Eureka Service Discovery Server
+  eureka-server:
+    build:
+      context: ./eureka-server
+      dockerfile: Dockerfile
+    container_name: eureka-server
+    ports:
+      - "8761:8761"
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: ./api-gateway
+      dockerfile: Dockerfile
+    container_name: api-gateway
+    ports:
+      - "8091:8091"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8091/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Main Service
+  main-service:
+    build:
+      context: ./main-service
+      dockerfile: Dockerfile
+    container_name: main-service
+    ports:
+      - "8082:8082"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/autocarrer
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Matching Service
+  matching-service:
+    build:
+      context: ./matching-service
+      dockerfile: Dockerfile
+    container_name: matching-service
+    ports:
+      - "8081:8081"
+    depends_on:
+      - eureka-server
+      - main-service
+    environment:
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/autocarrer
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Print Service
+  print-service:
+    build:
+      context: ./print-service
+      dockerfile: Dockerfile
+    container_name: print-service
+    ports:
+      - "8083:8083"
+    depends_on:
+      - eureka-server
+    environment:
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Vocabulary Service
+  vocabulary-service:
+    build:
+      context: ./vocabulary-service
+      dockerfile: Dockerfile
+    container_name: vocabulary-service
+    ports:
+      - "8084:8084"
+    depends_on:
+      - eureka-server
+      - mysql-db
+    environment:
+      - EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE=http://eureka-server:8761/eureka/
+      - SPRING_DATASOURCE_URL=jdbc:mysql://mysql-db:3306/vocabulary_db
+      - SPRING_DATASOURCE_USERNAME=root
+      - SPRING_DATASOURCE_PASSWORD=rootpassword
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # MySQL Database
+  mysql-db:
+    image: mysql:8.0
+    container_name: mysql-db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=rootpassword
+      - MYSQL_DATABASE=autocarrer
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    networks:
+      - joblink-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  joblink-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+

@@ -1,0 +1,33 @@
+spring:
+  api-gateway: http://localhost:8091/api-gateway
+  api-key: testkey
+  api-secret: testsecret
+  api-url: /test
+  api-version: v1
+  api-path: /testpath
+  api-method: GET
+  api-headers: header1=value1,header2=value2
+  api-body: '{"key": "value"}'
+  api-query-params: param1=value1,param2=value2
+  api-response-timeout: PT5S
+  api-request-timeout: PT3S
+  api-retry-count: 3
+  api-retry-delay: PT1S
+  api-retry-backoff-factor: 2.0
+  api-retry-max-jitter: PT1S
+  api-retry-randomize: true
+  api-retry-on-status-codes: [408, 500]
+  api-retry-on-error-messages: ["error message 1", "error message 2"]
+  api-retry-on-exceptions: [java.lang.Exception]
+  api-retry-on-http-errors: [HTTP_408, HTTP_500]
+  api-retry-on-non-successful-responses: true
+  api-retry-on-empty-responses: false
+  api-retry-on-null-responses: false
+  api-retry-on-failure-responses: true
+  api-retry-on-unsuccessful-responses: true
+  api-retry-on-invalid-responses: true
+  api-retry-on-bad-responses: true
+  api-retry-on-wrong-responses: true
+  api-retry-on-incorrect-responses: true
+  api-retry-on-incomplete-responses: true
+  api-retry-on-insufficient-responses: true

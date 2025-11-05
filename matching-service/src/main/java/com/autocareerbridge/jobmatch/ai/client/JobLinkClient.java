@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Map;
 
-@FeignClient(name = "joblink-service", url = "${joblink.service.url}")
+@FeignClient(name = "main-service")
 public interface JobLinkClient {
 
     @GetMapping("/api/ai/jobs")

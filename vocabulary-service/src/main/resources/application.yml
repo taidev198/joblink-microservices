@@ -1,0 +1,71 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: vocabulary-service
+  datasource:
+    url: jdbc:mysql://localhost:3306/vocabulary_db
+    username: root
+    password: rootpassword
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      max-lifetime: 1800000
+      idle-timeout: 600000
+      connection-timeout: 30000
+      validation-timeout: 30000
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQLDialect
+        format_sql: false
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    fetch-registry: true
+    register-with-eureka: true
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${server.port}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always
+
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+
+logging:
+  level:
+    com.joblink.vocabulary: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+

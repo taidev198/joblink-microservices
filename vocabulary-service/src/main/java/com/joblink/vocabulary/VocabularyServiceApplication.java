@@ -1,22 +1,21 @@
-package com.autocareerbridge.jobmatch.ai;
+package com.joblink.vocabulary;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.scheduling.annotation.EnableAsync;
-import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.data.jpa.repository.config.EnableJpaAuditing;
 
 import java.util.TimeZone;
 
 @SpringBootApplication
-@EnableFeignClients
-@EnableScheduling
-@EnableAsync
 @EnableEurekaClient
-public class JobMatchAIApplication {
+@EnableFeignClients
+@EnableJpaAuditing
+public class VocabularyServiceApplication {
     public static void main(String[] args) {
         TimeZone.setDefault(TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
-        SpringApplication.run(JobMatchAIApplication.class, args);
+        SpringApplication.run(VocabularyServiceApplication.class, args);
     }
 }
+
