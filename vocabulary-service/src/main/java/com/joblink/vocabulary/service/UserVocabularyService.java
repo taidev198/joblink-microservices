@@ -8,6 +8,7 @@ import com.joblink.vocabulary.model.entity.Word;
 import com.joblink.vocabulary.repository.UserVocabularyRepository;
 import com.joblink.vocabulary.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserVocabularyService {
@@ -67,6 +69,9 @@ public class UserVocabularyService {
     }
     
     public ApiResponse<List<UserVocabularyResponse>> getWordsDueForReview(Long userId) {
+        // Ensure all words are scheduled before getting due words
+        scheduleUnscheduledWords(userId);
+        
         List<UserVocabulary> wordsDue = userVocabularyRepository.findWordsDueForReview(userId, LocalDateTime.now());
         List<UserVocabularyResponse> responses = wordsDue.stream()
                 .map(this::toResponse)
@@ -172,9 +177,46 @@ public class UserVocabularyService {
     }
     
     /**
+     * Schedule all words that don't have a nextReviewAt set
+     * This ensures all learned words are properly scheduled for spaced repetition
+     */
+    @Transactional
+    public void scheduleUnscheduledWords(Long userId) {
+        List<UserVocabulary> allWords = userVocabularyRepository.findByUserId(userId, 
+                org.springframework.data.domain.PageRequest.of(0, 10000)).getContent();
+        
+        LocalDateTime now = LocalDateTime.now();
+        int scheduledCount = 0;
+        
+        for (UserVocabulary uv : allWords) {
+            if (uv.getNextReviewAt() == null) {
+                // If word has never been reviewed, set it to be due now
+                if (uv.getRepetitions() == 0 && uv.getReviewCount() == 0) {
+                    uv.setNextReviewAt(now);
+                } else if (uv.getLastReviewedAt() != null && uv.getIntervalDays() != null) {
+                    // If word was reviewed before but doesn't have nextReviewAt, calculate it
+                    uv.setNextReviewAt(uv.getLastReviewedAt().plusDays(uv.getIntervalDays()));
+                } else {
+                    // Default: make it due now
+                    uv.setNextReviewAt(now);
+                }
+                userVocabularyRepository.save(uv);
+                scheduledCount++;
+            }
+        }
+        
+        if (scheduledCount > 0) {
+            log.info("Scheduled {} words for user {}", scheduledCount, userId);
+        }
+    }
+    
+    /**
      * Get daily progress from database
      */
     public ApiResponse<Map<String, Object>> getDailyProgress(Long userId) {
+        // Ensure all words are scheduled before getting progress
+        scheduleUnscheduledWords(userId);
+        
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
         LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
@@ -202,6 +244,109 @@ public class UserVocabularyService {
         progress.put("hasActiveSession", wordsReviewed > 0 && wordsDue.size() > 0);
         
         return ApiResponse.success(progress);
+    }
+    
+    /**
+     * Get historical progress data for line graph
+     * Returns daily statistics for the last N days
+     */
+    public ApiResponse<Map<String, Object>> getHistoricalProgress(Long userId, int days) {
+        LocalDateTime endDate = LocalDateTime.now();
+        LocalDateTime startDate = endDate.minusDays(days);
+        
+        // Get all words reviewed in the date range
+        List<UserVocabulary> wordsReviewed = userVocabularyRepository.findWordsReviewedInRange(userId, startDate, endDate);
+        
+        // Group by date
+        Map<String, Map<String, Integer>> dailyStats = new HashMap<>();
+        
+        for (UserVocabulary uv : wordsReviewed) {
+            if (uv.getLastReviewedAt() != null) {
+                String dateKey = uv.getLastReviewedAt().toLocalDate().toString();
+                dailyStats.putIfAbsent(dateKey, new HashMap<>());
+                Map<String, Integer> dayStats = dailyStats.get(dateKey);
+                
+                // Count reviews
+                dayStats.put("reviews", dayStats.getOrDefault("reviews", 0) + 1);
+                
+                // Count new words learned (first review with quality >= 3)
+                if (uv.getReviewCount() == 1 && uv.getRepetitions() > 0) {
+                    dayStats.put("newWords", dayStats.getOrDefault("newWords", 0) + 1);
+                }
+                
+                // Count mastered words (status = MASTERED)
+                if (uv.getStatus() == UserVocabulary.LearningStatus.MASTERED) {
+                    dayStats.put("mastered", dayStats.getOrDefault("mastered", 0) + 1);
+                }
+            }
+        }
+        
+        // Create data points for graph (fill in missing days with 0)
+        List<Map<String, Object>> dataPoints = new java.util.ArrayList<>();
+        for (int i = days - 1; i >= 0; i--) {
+            LocalDateTime date = endDate.minusDays(i);
+            String dateKey = date.toLocalDate().toString();
+            Map<String, Integer> dayStats = dailyStats.getOrDefault(dateKey, new HashMap<>());
+            
+            Map<String, Object> point = new HashMap<>();
+            point.put("date", dateKey);
+            point.put("reviews", dayStats.getOrDefault("reviews", 0));
+            point.put("newWords", dayStats.getOrDefault("newWords", 0));
+            point.put("mastered", dayStats.getOrDefault("mastered", 0));
+            dataPoints.add(point);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("dataPoints", dataPoints);
+        result.put("totalDays", days);
+        result.put("startDate", startDate.toLocalDate().toString());
+        result.put("endDate", endDate.toLocalDate().toString());
+        
+        return ApiResponse.success(result);
+    }
+    
+    /**
+     * Get scheduler data - words scheduled for review in the next N days
+     */
+    public ApiResponse<Map<String, Object>> getSchedulerData(Long userId, int days) {
+        LocalDateTime startDate = LocalDateTime.now();
+        LocalDateTime endDate = startDate.plusDays(days);
+        
+        // Get words scheduled for review in the date range
+        List<UserVocabulary> scheduledWords = userVocabularyRepository.findWordsScheduledInRange(userId, startDate, endDate);
+        
+        // Group by date
+        Map<String, List<UserVocabularyResponse>> scheduleByDate = new HashMap<>();
+        
+        for (UserVocabulary uv : scheduledWords) {
+            if (uv.getNextReviewAt() != null) {
+                String dateKey = uv.getNextReviewAt().toLocalDate().toString();
+                scheduleByDate.putIfAbsent(dateKey, new java.util.ArrayList<>());
+                scheduleByDate.get(dateKey).add(toResponse(uv));
+            }
+        }
+        
+        // Create schedule data points
+        List<Map<String, Object>> schedulePoints = new java.util.ArrayList<>();
+        for (int i = 0; i < days; i++) {
+            LocalDateTime date = startDate.plusDays(i);
+            String dateKey = date.toLocalDate().toString();
+            List<UserVocabularyResponse> words = scheduleByDate.getOrDefault(dateKey, new java.util.ArrayList<>());
+            
+            Map<String, Object> point = new HashMap<>();
+            point.put("date", dateKey);
+            point.put("wordCount", words.size());
+            point.put("words", words);
+            schedulePoints.add(point);
+        }
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("schedule", schedulePoints);
+        result.put("totalDays", days);
+        result.put("startDate", startDate.toLocalDate().toString());
+        result.put("endDate", endDate.toLocalDate().toString());
+        
+        return ApiResponse.success(result);
     }
     
     

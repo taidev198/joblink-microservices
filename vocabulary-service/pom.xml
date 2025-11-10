@@ -48,14 +48,32 @@
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-netflix-eureka-client</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.resilience4j</groupId>
+                    <artifactId>resilience4j-spring-cloud3</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.resilience4j</groupId>
+                    <artifactId>resilience4j-spring-cloud3</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>io.github.resilience4j</groupId>
+                    <artifactId>resilience4j-spring-cloud3</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
 
         <!-- Database -->
@@ -129,7 +147,40 @@
             <artifactId>jackson-databind</artifactId>
             <version>2.17.2</version>
         </dependency>
+        <!-- Spring AI for Anthropic Claude integration -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
+            <version>1.0.0-M4</version>
+        </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>central</id>
+            <name>Maven Central</name>
+            <url>https://repo1.maven.org/maven2</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>spring-milestones</id>
+            <name>Spring Milestones</name>
+            <url>https://repo.spring.io/milestone</url>
+            <snapshots>
+                <enabled>false</enabled>
+            </snapshots>
+        </repository>
+        <repository>
+            <id>spring-snapshots</id>
+            <name>Spring Snapshots</name>
+            <url>https://repo.spring.io/snapshot</url>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>

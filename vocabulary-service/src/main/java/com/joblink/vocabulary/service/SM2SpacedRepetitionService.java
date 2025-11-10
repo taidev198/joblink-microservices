@@ -147,11 +147,14 @@ public class SM2SpacedRepetitionService {
     
     /**
      * Initialize SM-2 fields for a new user vocabulary item
+     * New words should be immediately due for review
      */
     public void initializeSM2Fields(UserVocabulary userVocabulary) {
         userVocabulary.setEasinessFactor(DEFAULT_EF);
         userVocabulary.setIntervalDays(0);
         userVocabulary.setRepetitions(0);
+        // Set nextReviewAt to now so the word is immediately due for review
+        userVocabulary.setNextReviewAt(LocalDateTime.now());
     }
     
     /**

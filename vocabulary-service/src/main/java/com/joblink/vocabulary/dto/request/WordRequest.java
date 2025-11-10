@@ -1,6 +1,8 @@
 package com.joblink.vocabulary.dto.request;
 
 import com.joblink.vocabulary.model.entity.Word;
+import com.joblink.vocabulary.model.entity.WordCategory;
+import com.joblink.vocabulary.model.entity.WordLevel;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -18,10 +20,10 @@ public class WordRequest {
     private String translation;
     
     @NotNull(message = "Level is required")
-    private Word.WordLevel level;
+    private WordLevel level;
     
     @NotNull(message = "Category is required")
-    private Word.WordCategory category;
+    private WordCategory category;
     
     private String partOfSpeech;
     private String synonyms;

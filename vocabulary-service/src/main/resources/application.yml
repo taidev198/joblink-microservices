@@ -25,6 +25,27 @@ spring:
   jackson:
     serialization:
       write-dates-as-timestamps: false
+  ai:
+    openai:
+      enabled: false
+      api-key:
+      chat:
+        options:
+          model: gpt-3.5-turbo
+          temperature: 0.7
+          max-tokens: 1000
+    anthropic:
+      api-key: 
+      chat:
+        options:
+          model: claude-3-opus-20240229
+          temperature: 0.7
+          max-tokens: 1000
+    provider: ${AI_PROVIDER:anthropic} # Options: openai, anthropic (default: anthropic)
+
+phoneme:
+  backend:
+    url: ${PHONEME_BACKEND_URL:http://localhost:8001}
 
 eureka:
   client:
@@ -80,3 +101,6 @@ whisper:
   temp:
     dir: ${java.io.tmpdir}/whisper
 
+huggingface:
+  api:
+    key: 

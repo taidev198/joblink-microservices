@@ -4,7 +4,10 @@ import com.joblink.vocabulary.dto.request.WordRequest;
 import com.joblink.vocabulary.dto.response.ApiResponse;
 import com.joblink.vocabulary.dto.response.WordResponse;
 import com.joblink.vocabulary.model.entity.Word;
+import com.joblink.vocabulary.model.entity.WordCategory;
+import com.joblink.vocabulary.model.entity.WordLevel;
 import com.joblink.vocabulary.service.WordService;
+import com.joblink.vocabulary.service.ContextVocabService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -14,12 +17,15 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/vocabulary/words")
 @RequiredArgsConstructor
 public class WordController {
     
     private final WordService wordService;
+    private final ContextVocabService contextVocabService;
     
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -44,16 +50,16 @@ public class WordController {
     
     @GetMapping("/level/{level}")
     public ApiResponse<Page<WordResponse>> getWordsByLevel(
-            @PathVariable Word.WordLevel level,
+            @PathVariable WordLevel level,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
-        return wordService.getWordsByLevel(level, pageable);
+        return wordService.getWordsByWordLevel(level, pageable);
     }
     
     @GetMapping("/category/{category}")
     public ApiResponse<Page<WordResponse>> getWordsByCategory(
-            @PathVariable Word.WordCategory category,
+            @PathVariable WordCategory category,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
@@ -150,6 +156,32 @@ public class WordController {
     @DeleteMapping("/{id}")
     public ApiResponse<Void> deleteWord(@PathVariable Long id) {
         return wordService.deleteWord(id);
+    }
+    
+    /**
+     * Generate vocabulary from image using Vision API + GPT
+     */
+    @PostMapping("/context/generate")
+    public ApiResponse<Map<String, Object>> generateVocabFromImage(
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile imageFile,
+            @RequestParam("userId") Long userId) {
+        return contextVocabService.generateVocabFromImage(imageFile, userId);
+    }
+    
+    /**
+     * Save context-generated word to vocabulary
+     */
+    @PostMapping("/context/save")
+    public ApiResponse<Map<String, Object>> saveContextWord(
+            @RequestBody Map<String, String> request) {
+        Long userId = Long.parseLong(request.get("userId"));
+        String word = request.get("word");
+        String partOfSpeech = request.get("partOfSpeech");
+        String level = request.get("level");
+        String example = request.get("example");
+        String context = request.get("context");
+        
+        return contextVocabService.saveContextWord(userId, word, partOfSpeech, level, example, context);
     }
 }
 

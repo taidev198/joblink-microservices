@@ -20,7 +20,8 @@ public interface UserVocabularyRepository extends JpaRepository<UserVocabulary, 
     
     Page<UserVocabulary> findByUserIdAndStatus(Long userId, UserVocabulary.LearningStatus status, Pageable pageable);
     
-    @Query("SELECT uv FROM UserVocabulary uv WHERE uv.userId = :userId AND uv.nextReviewAt <= :now")
+    // Find words due for review: words where nextReviewAt is null (never reviewed) or nextReviewAt <= now
+    @Query("SELECT uv FROM UserVocabulary uv WHERE uv.userId = :userId AND (uv.nextReviewAt IS NULL OR uv.nextReviewAt <= :now)")
     List<UserVocabulary> findWordsDueForReview(@Param("userId") Long userId, @Param("now") LocalDateTime now);
     
     @Query("SELECT COUNT(uv) FROM UserVocabulary uv WHERE uv.userId = :userId")
@@ -40,5 +41,13 @@ public interface UserVocabularyRepository extends JpaRepository<UserVocabulary, 
     // Count new words learned today
     @Query("SELECT COUNT(uv) FROM UserVocabulary uv WHERE uv.userId = :userId AND uv.reviewCount = 1 AND uv.lastReviewedAt IS NOT NULL AND uv.lastReviewedAt >= :startOfDay AND uv.lastReviewedAt <= :endOfDay AND uv.repetitions > 0")
     Long countNewWordsLearnedToday(@Param("userId") Long userId, @Param("startOfDay") LocalDateTime startOfDay, @Param("endOfDay") LocalDateTime endOfDay);
+    
+    // Get words reviewed in a date range (for historical progress)
+    @Query("SELECT uv FROM UserVocabulary uv WHERE uv.userId = :userId AND uv.lastReviewedAt IS NOT NULL AND uv.lastReviewedAt >= :startDate AND uv.lastReviewedAt <= :endDate ORDER BY uv.lastReviewedAt ASC")
+    List<UserVocabulary> findWordsReviewedInRange(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    
+    // Get words with next review date in a range (for scheduler)
+    @Query("SELECT uv FROM UserVocabulary uv WHERE uv.userId = :userId AND uv.nextReviewAt IS NOT NULL AND uv.nextReviewAt >= :startDate AND uv.nextReviewAt <= :endDate ORDER BY uv.nextReviewAt ASC")
+    List<UserVocabulary> findWordsScheduledInRange(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
 }
 

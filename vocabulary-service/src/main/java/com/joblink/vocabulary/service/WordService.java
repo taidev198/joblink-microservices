@@ -5,6 +5,8 @@ import com.joblink.vocabulary.dto.response.ApiResponse;
 import com.joblink.vocabulary.dto.response.WordResponse;
 import com.joblink.vocabulary.mapper.WordMapper;
 import com.joblink.vocabulary.model.entity.Word;
+import com.joblink.vocabulary.model.entity.WordCategory;
+import com.joblink.vocabulary.model.entity.WordLevel;
 import com.joblink.vocabulary.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -79,13 +81,13 @@ public class WordService {
         return ApiResponse.success(wordResponses);
     }
     
-    public ApiResponse<Page<WordResponse>> getWordsByLevel(Word.WordLevel level, Pageable pageable) {
-        Page<Word> words = wordRepository.findByLevel(level, pageable);
+    public ApiResponse<Page<WordResponse>> getWordsByWordLevel(WordLevel WordLevel, Pageable pageable) {
+        Page<Word> words = wordRepository.findByLevel(WordLevel, pageable);
         Page<WordResponse> wordResponses = words.map(wordMapper::toResponse);
         return ApiResponse.success(wordResponses);
     }
     
-    public ApiResponse<Page<WordResponse>> getWordsByCategory(Word.WordCategory category, Pageable pageable) {
+    public ApiResponse<Page<WordResponse>> getWordsByCategory(WordCategory category, Pageable pageable) {
         Page<Word> words = wordRepository.findByCategory(category, pageable);
         Page<WordResponse> wordResponses = words.map(wordMapper::toResponse);
         return ApiResponse.success(wordResponses);
@@ -194,8 +196,8 @@ public class WordService {
                             .meaning(wordData.getMeaning())
                             .exampleSentence(wordData.getExampleSentence())
                             .translation(wordData.getMeaning()) // Use meaning as translation
-                            .level(Word.WordLevel.INTERMEDIATE) // Default level
-                            .category(Word.WordCategory.DAILY_LIFE) // Default category
+                            .level(WordLevel.INTERMEDIATE) // Default WordLevel
+                            .category(WordCategory.DAILY_LIFE) // Default category
                             .isActive(true)
                             .build();
                     
@@ -276,8 +278,8 @@ public class WordService {
             wordToSave = Word.builder()
                     .englishWord(word)
                     .isActive(true)
-                    .level(Word.WordLevel.INTERMEDIATE)
-                    .category(Word.WordCategory.DAILY_LIFE)
+                    .level(WordLevel.INTERMEDIATE)
+                    .category(WordCategory.DAILY_LIFE)
                     .build();
         }
         
@@ -464,12 +466,12 @@ public class WordService {
                                 .build();
                     }
                     
-                    // Map level from JSON (A1, A2, B1, B2, C1, C2) to Word.WordLevel
-                    Word.WordLevel wordLevel = mapLevelToWordLevel(entry.getLevel());
-                    if (wordLevel != null) {
-                        wordToSave.setLevel(wordLevel);
+                    // Map WordLevel from JSON (A1, A2, B1, B2, C1, C2) to WordLevel
+                    WordLevel wordWordLevel = mapWordLevelToWordWordLevel(entry.getLevel());
+                    if (wordWordLevel != null) {
+                        wordToSave.setLevel(wordWordLevel);
                     } else if (existingWord == null) {
-                        wordToSave.setLevel(Word.WordLevel.INTERMEDIATE); // Default
+                        wordToSave.setLevel(WordLevel.INTERMEDIATE); // Default
                     }
                     
                     // Set part of speech from JSON type
@@ -522,7 +524,7 @@ public class WordService {
                     
                     // Set default category if not set
                     if (existingWord == null) {
-                        wordToSave.setCategory(Word.WordCategory.DAILY_LIFE);
+                        wordToSave.setCategory(WordCategory.DAILY_LIFE);
                     }
                     
                     // Save word first
@@ -591,18 +593,18 @@ public class WordService {
     }
 
     /**
-     * Map level string (A1, A2, B1, B2, C1, C2) to Word.WordLevel
+     * Map WordLevel string (A1, A2, B1, B2, C1, C2) to WordLevel
      */
-    private Word.WordLevel mapLevelToWordLevel(String level) {
+    private WordLevel mapWordLevelToWordWordLevel(String level) {
         if (level == null || level.isEmpty()) {
             return null;
         }
         
-        String upperLevel = level.toUpperCase().trim();
-        return switch (upperLevel) {
-            case "A1", "A2" -> Word.WordLevel.BEGINNER;
-            case "B1", "B2" -> Word.WordLevel.INTERMEDIATE;
-            case "C1", "C2" -> Word.WordLevel.ADVANCED;
+        String upperWordLevel = level.toUpperCase().trim();
+        return switch (upperWordLevel) {
+            case "A1", "A2" -> WordLevel.BEGINNER;
+            case "B1", "B2" -> WordLevel.INTERMEDIATE;
+            case "C1", "C2" -> WordLevel.ADVANCED;
             default -> null;
         };
     }

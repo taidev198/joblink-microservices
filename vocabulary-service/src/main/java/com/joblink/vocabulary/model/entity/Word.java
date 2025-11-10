@@ -80,13 +80,6 @@ public class Word {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-    
-    public enum WordLevel {
-        BEGINNER, INTERMEDIATE, ADVANCED
-    }
-    
-    public enum WordCategory {
-        DAILY_LIFE, BUSINESS, ACADEMIC, TECHNOLOGY, TRAVEL, FOOD, SPORTS, ENTERTAINMENT, OTHER
-    }
+
 }
 

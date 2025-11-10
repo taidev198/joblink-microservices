@@ -1,6 +1,8 @@
 package com.joblink.vocabulary.repository;
 
 import com.joblink.vocabulary.model.entity.Word;
+import com.joblink.vocabulary.model.entity.WordCategory;
+import com.joblink.vocabulary.model.entity.WordLevel;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,11 +17,11 @@ import java.util.Optional;
 public interface WordRepository extends JpaRepository<Word, Long> {
     Optional<Word> findByEnglishWordIgnoreCase(String englishWord);
     
-    Page<Word> findByLevel(Word.WordLevel level, Pageable pageable);
+    Page<Word> findByLevel(WordLevel level, Pageable pageable);
     
-    Page<Word> findByCategory(Word.WordCategory category, Pageable pageable);
+    Page<Word> findByCategory(WordCategory category, Pageable pageable);
     
-    Page<Word> findByLevelAndCategory(Word.WordLevel level, Word.WordCategory category, Pageable pageable);
+    Page<Word> findByLevelAndCategory(WordLevel level, WordCategory category, Pageable pageable);
     
     Page<Word> findByIsActiveTrue(Pageable pageable);
     

@@ -114,5 +114,27 @@ public class UserVocabularyController {
     public ApiResponse<Map<String, Object>> getDailyProgress(@PathVariable Long userId) {
         return userVocabularyService.getDailyProgress(userId);
     }
+    
+    /**
+     * Get historical progress data for line graph
+     * @param days Number of days to look back (default: 30)
+     */
+    @GetMapping("/historical-progress")
+    public ApiResponse<Map<String, Object>> getHistoricalProgress(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "30") int days) {
+        return userVocabularyService.getHistoricalProgress(userId, days);
+    }
+    
+    /**
+     * Get scheduler data - words scheduled for review
+     * @param days Number of days ahead to show (default: 30)
+     */
+    @GetMapping("/scheduler")
+    public ApiResponse<Map<String, Object>> getSchedulerData(
+            @PathVariable Long userId,
+            @RequestParam(defaultValue = "30") int days) {
+        return userVocabularyService.getSchedulerData(userId, days);
+    }
 }
 

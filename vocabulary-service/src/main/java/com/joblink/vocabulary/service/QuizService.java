@@ -6,6 +6,7 @@ import com.joblink.vocabulary.dto.response.QuizResponse;
 import com.joblink.vocabulary.dto.response.WordResponse;
 import com.joblink.vocabulary.mapper.WordMapper;
 import com.joblink.vocabulary.model.entity.Word;
+import com.joblink.vocabulary.model.entity.WordLevel;
 import com.joblink.vocabulary.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -77,10 +78,10 @@ public class QuizService {
     }
     
     private List<Word> getRandomWords(String difficulty, int count) {
-        Word.WordLevel level = switch (difficulty != null ? difficulty.toUpperCase() : "MEDIUM") {
-            case "EASY" -> Word.WordLevel.BEGINNER;
-            case "HARD" -> Word.WordLevel.ADVANCED;
-            default -> Word.WordLevel.INTERMEDIATE;
+        WordLevel level = switch (difficulty != null ? difficulty.toUpperCase() : "MEDIUM") {
+            case "EASY" -> WordLevel.BEGINNER;
+            case "HARD" -> WordLevel.ADVANCED;
+            default -> WordLevel.INTERMEDIATE;
         };
         
         // Get words by level, filter active ones, then get more than needed for randomization

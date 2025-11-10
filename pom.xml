@@ -15,6 +15,7 @@
     <java.version>17</java.version>
     <spring-boot.version>3.3.5</spring-boot.version>
     <spring-cloud.version>2023.0.3</spring-cloud.version>
+    <spring-ai.version>1.0.0-M4</spring-ai.version>
     <resilience4j.version>2.1.0</resilience4j.version>
   </properties>
 
@@ -23,7 +24,7 @@
     <module>config-service</module>
     <module>api-gateway</module>
     <module>matching-service</module>
-    <module>main-service</module>
+<!--    <module>main-service</module>-->
     <module>print-service</module>
     <module>vocabulary-service</module>
     <!-- Add more microservices here -->
@@ -40,8 +41,22 @@
       </dependency>
       <dependency>
         <groupId>io.github.resilience4j</groupId>
-        <artifactId>resilience4j-spring-boot3</artifactId>
+        <artifactId>resilience4j-bom</artifactId>
         <version>${resilience4j.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-bom</artifactId>
+        <version>${spring-ai.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.springframework.ai</groupId>
+        <artifactId>spring-ai-anthropic-spring-boot-starter</artifactId>
+        <version>${spring-ai.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -64,4 +79,15 @@
     <version>3.3.5</version>
     <relativePath/>
   </parent>
+
+  <repositories>
+    <repository>
+      <id>spring-milestones</id>
+      <name>Spring Milestones</name>
+      <url>https://repo.spring.io/milestone</url>
+      <snapshots>
+        <enabled>false</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
 </project>
