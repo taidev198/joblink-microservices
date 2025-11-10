@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/vocabulary/users/{userId}/vocabularies")
+@RequestMapping("/vocabulary/users/{userId}/vocabularies")
 @RequiredArgsConstructor
 public class UserVocabularyController {
     
@@ -51,11 +51,37 @@ public class UserVocabularyController {
         return userVocabularyService.getWordsDueForReview(userId);
     }
     
+    /**
+     * Update learning status using SM-2 algorithm with quality parameter
+     * 
+     * Quality scale (0-5):
+     * - 5: Perfect response
+     * - 4: Correct response after hesitation
+     * - 3: Correct response with serious difficulty
+     * - 2: Incorrect response; correct one remembered
+     * - 1: Incorrect response; correct one seemed familiar
+     * - 0: Complete blackout
+     */
+    @PutMapping("/words/{wordId}/review")
+    public ApiResponse<UserVocabularyResponse> reviewWordWithSM2(
+            @PathVariable Long userId,
+            @PathVariable Long wordId,
+            @RequestParam Integer quality) {
+        if (quality < 0 || quality > 5) {
+            return ApiResponse.error("Quality must be between 0 and 5");
+        }
+        return userVocabularyService.updateLearningStatusWithSM2(userId, wordId, quality);
+    }
+    
+    /**
+     * Legacy endpoint for backward compatibility
+     * Maps isCorrect boolean to quality (5 if correct, 2 if incorrect)
+     */
     @PutMapping("/words/{wordId}/status")
     public ApiResponse<UserVocabularyResponse> updateLearningStatus(
             @PathVariable Long userId,
             @PathVariable Long wordId,
-            @RequestParam UserVocabulary.LearningStatus status,
+            @RequestParam(required = false) UserVocabulary.LearningStatus status,
             @RequestParam(required = false) Boolean isCorrect) {
         return userVocabularyService.updateLearningStatus(userId, wordId, status, isCorrect);
     }
@@ -63,6 +89,30 @@ public class UserVocabularyController {
     @GetMapping("/stats")
     public ApiResponse<Map<String, Object>> getUserVocabularyStats(@PathVariable Long userId) {
         return userVocabularyService.getUserVocabularyStats(userId);
+    }
+    
+    /**
+     * Get words reviewed today
+     */
+    @GetMapping("/reviewed-today")
+    public ApiResponse<List<UserVocabularyResponse>> getWordsReviewedToday(@PathVariable Long userId) {
+        return userVocabularyService.getWordsReviewedToday(userId);
+    }
+    
+    /**
+     * Get new words learned today
+     */
+    @GetMapping("/learned-today")
+    public ApiResponse<List<UserVocabularyResponse>> getNewWordsLearnedToday(@PathVariable Long userId) {
+        return userVocabularyService.getNewWordsLearnedToday(userId);
+    }
+    
+    /**
+     * Get daily progress from database
+     */
+    @GetMapping("/daily-progress")
+    public ApiResponse<Map<String, Object>> getDailyProgress(@PathVariable Long userId) {
+        return userVocabularyService.getDailyProgress(userId);
     }
 }
 

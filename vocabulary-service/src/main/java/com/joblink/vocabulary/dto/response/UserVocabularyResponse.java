@@ -23,6 +23,12 @@ public class UserVocabularyResponse {
     private LocalDateTime lastReviewedAt;
     private LocalDateTime nextReviewAt;
     private Double masteryScore;
+    
+    // SM-2 Algorithm fields
+    private Double easinessFactor;
+    private Integer intervalDays;
+    private Integer repetitions;
+    
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

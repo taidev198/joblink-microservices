@@ -61,6 +61,13 @@ public class Word {
     
     @Column(name = "audio_url")
     private String audioUrl;
+
+    // Adding separate fields for English and Vietnamese audio URLs
+    @Column(name = "english_audio_url")
+    private String englishAudioUrl;
+
+    @Column(name = "vietnamese_audio_url")
+    private String vietnameseAudioUrl;
     
     @Column(nullable = false)
     @Builder.Default

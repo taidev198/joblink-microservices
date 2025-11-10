@@ -25,6 +25,7 @@ public class UserVocabularyService {
     private final UserVocabularyRepository userVocabularyRepository;
     private final WordRepository wordRepository;
     private final WordMapper wordMapper;
+    private final SM2SpacedRepetitionService sm2Service;
     
     @Transactional
     public ApiResponse<UserVocabularyResponse> addWordToUserVocabulary(Long userId, Long wordId) {
@@ -44,6 +45,9 @@ public class UserVocabularyService {
                 .incorrectCount(0)
                 .masteryScore(0.0)
                 .build();
+        
+        // Initialize SM-2 fields
+        sm2Service.initializeSM2Fields(userVocabulary);
         
         UserVocabulary saved = userVocabularyRepository.save(userVocabulary);
         return ApiResponse.success("Word added to vocabulary", toResponse(saved));
@@ -70,38 +74,53 @@ public class UserVocabularyService {
         return ApiResponse.success(responses);
     }
     
+    /**
+     * Update learning status using SM-2 algorithm
+     * 
+     * @param userId User ID
+     * @param wordId Word ID
+     * @param quality Quality of response (0-5) for SM-2 algorithm
+     *                5: Perfect response
+     *                4: Correct response after hesitation
+     *                3: Correct response with serious difficulty
+     *                2: Incorrect response; correct one remembered
+     *                1: Incorrect response; correct one seemed familiar
+     *                0: Complete blackout
+     * @return Updated user vocabulary response
+     */
+    @Transactional
+    public ApiResponse<UserVocabularyResponse> updateLearningStatusWithSM2(
+            Long userId, Long wordId, Integer quality) {
+        UserVocabulary userVocabulary = userVocabularyRepository.findByUserIdAndWordId(userId, wordId)
+                .orElseThrow(() -> new RuntimeException("Word not found in user vocabulary"));
+        
+        // Use SM-2 algorithm to calculate next review
+        sm2Service.calculateNextReview(userVocabulary, quality);
+        
+        UserVocabulary updated = userVocabularyRepository.save(userVocabulary);
+        return ApiResponse.success("Learning status updated with SM-2 algorithm", toResponse(updated));
+    }
+    
+    /**
+     * Legacy method for backward compatibility
+     * Maps isCorrect boolean to quality (5 if correct, 2 if incorrect)
+     */
     @Transactional
     public ApiResponse<UserVocabularyResponse> updateLearningStatus(
             Long userId, Long wordId, UserVocabulary.LearningStatus status, Boolean isCorrect) {
         UserVocabulary userVocabulary = userVocabularyRepository.findByUserIdAndWordId(userId, wordId)
                 .orElseThrow(() -> new RuntimeException("Word not found in user vocabulary"));
         
-        userVocabulary.setStatus(status);
-        userVocabulary.setReviewCount(userVocabulary.getReviewCount() + 1);
-        userVocabulary.setLastReviewedAt(LocalDateTime.now());
+        // Map boolean to quality for SM-2
+        int quality = (isCorrect != null && isCorrect) ? 5 : 2;
         
-        if (isCorrect != null) {
-            if (isCorrect) {
-                userVocabulary.setCorrectCount(userVocabulary.getCorrectCount() + 1);
-            } else {
-                userVocabulary.setIncorrectCount(userVocabulary.getIncorrectCount() + 1);
-            }
+        // Use SM-2 algorithm
+        sm2Service.calculateNextReview(userVocabulary, quality);
+        
+        // Override status if explicitly provided
+        if (status != null) {
+            userVocabulary.setStatus(status);
         }
-        
-        // Calculate mastery score (0.0 to 1.0)
-        int totalAttempts = userVocabulary.getCorrectCount() + userVocabulary.getIncorrectCount();
-        if (totalAttempts > 0) {
-            double masteryScore = (double) userVocabulary.getCorrectCount() / totalAttempts;
-            userVocabulary.setMasteryScore(masteryScore);
-            
-            if (masteryScore >= 0.8 && userVocabulary.getReviewCount() >= 5) {
-                userVocabulary.setStatus(UserVocabulary.LearningStatus.MASTERED);
-            }
-        }
-        
-        // Set next review date (spaced repetition: 1 day, 3 days, 7 days, etc.)
-        LocalDateTime nextReview = calculateNextReviewDate(userVocabulary.getReviewCount());
-        userVocabulary.setNextReviewAt(nextReview);
         
         UserVocabulary updated = userVocabularyRepository.save(userVocabulary);
         return ApiResponse.success("Learning status updated", toResponse(updated));
@@ -124,17 +143,67 @@ public class UserVocabularyService {
         return ApiResponse.success(stats);
     }
     
-    private LocalDateTime calculateNextReviewDate(int reviewCount) {
-        // Spaced repetition algorithm
-        int daysToAdd = switch (reviewCount) {
-            case 1 -> 1;
-            case 2 -> 3;
-            case 3 -> 7;
-            case 4 -> 14;
-            default -> 30;
-        };
-        return LocalDateTime.now().plusDays(daysToAdd);
+    /**
+     * Get words reviewed today
+     */
+    public ApiResponse<List<UserVocabularyResponse>> getWordsReviewedToday(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
+        List<UserVocabulary> wordsReviewed = userVocabularyRepository.findWordsReviewedToday(userId, startOfDay, endOfDay);
+        List<UserVocabularyResponse> responses = wordsReviewed.stream()
+                .map(this::toResponse)
+                .toList();
+        return ApiResponse.success(responses);
     }
+    
+    /**
+     * Get new words learned today (first review with quality >= 3)
+     */
+    public ApiResponse<List<UserVocabularyResponse>> getNewWordsLearnedToday(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
+        List<UserVocabulary> newWords = userVocabularyRepository.findNewWordsLearnedToday(userId, startOfDay, endOfDay);
+        List<UserVocabularyResponse> responses = newWords.stream()
+                .map(this::toResponse)
+                .toList();
+        return ApiResponse.success(responses);
+    }
+    
+    /**
+     * Get daily progress from database
+     */
+    public ApiResponse<Map<String, Object>> getDailyProgress(Long userId) {
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+        LocalDateTime endOfDay = now.toLocalDate().atTime(23, 59, 59);
+        
+        // Get words reviewed today (using date range)
+        List<UserVocabulary> wordsReviewedToday = userVocabularyRepository.findWordsReviewedToday(userId, startOfDay, endOfDay);
+        int wordsReviewed = wordsReviewedToday.size();
+        
+        // Count words learned today (quality >= 3)
+        int wordsLearned = (int) wordsReviewedToday.stream()
+                .filter(uv -> uv.getCorrectCount() > 0 || uv.getRepetitions() > 0)
+                .count();
+        
+        // Count new words learned today
+        Long newWordsLearnedToday = userVocabularyRepository.countNewWordsLearnedToday(userId, startOfDay, endOfDay);
+        
+        // Get words due for review
+        List<UserVocabulary> wordsDue = userVocabularyRepository.findWordsDueForReview(userId, now);
+        
+        Map<String, Object> progress = new HashMap<>();
+        progress.put("wordsReviewed", wordsReviewed);
+        progress.put("wordsLearned", wordsLearned);
+        progress.put("newWordsLearnedToday", newWordsLearnedToday.intValue());
+        progress.put("wordsDueForReview", wordsDue.size());
+        progress.put("hasActiveSession", wordsReviewed > 0 && wordsDue.size() > 0);
+        
+        return ApiResponse.success(progress);
+    }
+    
     
     private UserVocabularyResponse toResponse(UserVocabulary userVocabulary) {
         return UserVocabularyResponse.builder()
@@ -148,6 +217,9 @@ public class UserVocabularyService {
                 .lastReviewedAt(userVocabulary.getLastReviewedAt())
                 .nextReviewAt(userVocabulary.getNextReviewAt())
                 .masteryScore(userVocabulary.getMasteryScore())
+                .easinessFactor(userVocabulary.getEasinessFactor())
+                .intervalDays(userVocabulary.getIntervalDays())
+                .repetitions(userVocabulary.getRepetitions())
                 .createdAt(userVocabulary.getCreatedAt())
                 .updatedAt(userVocabulary.getUpdatedAt())
                 .build();

@@ -15,7 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/vocabulary/words")
+@RequestMapping("/vocabulary/words")
 @RequiredArgsConstructor
 public class WordController {
     
@@ -67,6 +67,77 @@ public class WordController {
             @RequestParam(defaultValue = "20") int size) {
         Pageable pageable = PageRequest.of(page, size);
         return wordService.searchWords(keyword, pageable);
+    }
+    
+    // Allow GET for quick testing in a browser or Postman
+    @GetMapping("/crawl-audio")
+    public ApiResponse<Void> crawlAudioGet(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "200") int size) {
+        return crawlAudio(page, size);
+    }
+    
+    @PostMapping("/crawl-audio")
+    public ApiResponse<Void> crawlAudio(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "200") int size) {
+        wordService.crawlAudioForWords(page, size);
+
+        return ApiResponse.success("Audio crawling completed", null);
+    }
+
+    @GetMapping("/extract-pdf")
+    public ApiResponse<Void> extractPDFGet(
+            @RequestParam String pdfPath,
+            @RequestParam(defaultValue = "true") boolean fetchAudio) {
+        return extractPDF(pdfPath, fetchAudio);
+    }
+
+    @PostMapping("/extract-pdf")
+    public ApiResponse<Void> extractPDF(
+            @RequestParam String pdfPath,
+            @RequestParam(defaultValue = "true") boolean fetchAudio) {
+        wordService.extractAndSaveWordsFromPDF(pdfPath, fetchAudio);
+        return ApiResponse.success("PDF extraction and word saving completed", null);
+    }
+
+    @GetMapping("/crawl-cambridge")
+    public ApiResponse<WordResponse> crawlCambridgeGet(@RequestParam String word) {
+        return crawlCambridge(word);
+    }
+
+    @PostMapping("/crawl-cambridge")
+    public ApiResponse<WordResponse> crawlCambridge(@RequestParam String word) {
+        Word savedWord = wordService.fetchAndSaveWordFromCambridge(word);
+        return ApiResponse.success("Word fetched from Cambridge Dictionary successfully", 
+                wordService.getWordById(savedWord.getId()).getData());
+    }
+
+    @PostMapping("/crawl-cambridge/batch")
+    public ApiResponse<Void> batchCrawlCambridge(
+            @RequestBody java.util.List<String> words,
+            @RequestParam(defaultValue = "false") boolean fetchAudio) {
+        wordService.batchFetchWordsFromCambridge(words, fetchAudio);
+        return ApiResponse.success("Batch fetch from Cambridge Dictionary completed", null);
+    }
+
+    @GetMapping("/process-oxford-json")
+    public ApiResponse<Void> processOxfordJsonGet(
+            @RequestParam String jsonFilePath,
+            @RequestParam(defaultValue = "0") int startIndex,
+            @RequestParam(defaultValue = "50") int batchSize,
+            @RequestParam(defaultValue = "true") boolean fetchAudio) {
+        return processOxfordJson(jsonFilePath, startIndex, batchSize, fetchAudio);
+    }
+
+    @PostMapping("/process-oxford-json")
+    public ApiResponse<Void> processOxfordJson(
+            @RequestParam String jsonFilePath,
+            @RequestParam(defaultValue = "0") int startIndex,
+            @RequestParam(defaultValue = "50") int batchSize,
+            @RequestParam(defaultValue = "true") boolean fetchAudio) {
+        wordService.processOxfordWordsFromJson(jsonFilePath, startIndex, batchSize, fetchAudio);
+        return ApiResponse.success("Oxford words processing completed", null);
     }
     
     @PutMapping("/{id}")

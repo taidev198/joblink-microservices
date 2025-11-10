@@ -83,12 +83,21 @@ public class QuizService {
             default -> Word.WordLevel.INTERMEDIATE;
         };
         
+        // Get words by level, filter active ones, then get more than needed for randomization
         List<Word> words = wordRepository.findByLevel(level, 
-                org.springframework.data.domain.PageRequest.of(0, count * 2))
-                .getContent();
+                org.springframework.data.domain.PageRequest.of(0, Math.max(count * 3, 50)))
+                .getContent()
+                .stream()
+                .filter(Word::getIsActive)
+                .collect(Collectors.toList());
+        
+        if (words.isEmpty()) {
+            return Collections.emptyList();
+        }
         
         Collections.shuffle(words);
-        return words.subList(0, Math.min(count, words.size()));
+        int actualCount = Math.min(count, words.size());
+        return words.subList(0, actualCount);
     }
 }
 

@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/vocabulary/users/{userId}/quiz")
+@RequestMapping("/vocabulary/users/{userId}/quiz")
 @RequiredArgsConstructor
 public class QuizController {
     

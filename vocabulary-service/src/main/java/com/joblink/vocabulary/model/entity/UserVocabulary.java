@@ -60,6 +60,19 @@ public class UserVocabulary {
     @Builder.Default
     private Double masteryScore = 0.0;
     
+    // SM-2 Algorithm fields
+    @Column(name = "easiness_factor")
+    @Builder.Default
+    private Double easinessFactor = 2.5; // Default EF value for SM-2
+    
+    @Column(name = "interval_days")
+    @Builder.Default
+    private Integer intervalDays = 0; // Days until next review
+    
+    @Column(name = "repetitions")
+    @Builder.Default
+    private Integer repetitions = 0; // Number of successful consecutive reviews
+    
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

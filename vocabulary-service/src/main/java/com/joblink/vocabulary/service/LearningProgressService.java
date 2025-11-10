@@ -43,6 +43,11 @@ public class LearningProgressService {
         
         LearningProgress savedProgress = learningProgressRepository.save(progress);
         
+        // Ensure word is in user vocabulary (add if doesn't exist)
+        if (userVocabularyRepository.findByUserIdAndWordId(userId, request.getWordId()).isEmpty()) {
+            userVocabularyService.addWordToUserVocabulary(userId, request.getWordId());
+        }
+        
         // Update user vocabulary status
         UserVocabulary.LearningStatus newStatus = request.getIsCorrect() 
                 ? UserVocabulary.LearningStatus.LEARNING 

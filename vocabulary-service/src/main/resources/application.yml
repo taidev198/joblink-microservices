@@ -5,9 +5,9 @@ spring:
   application:
     name: vocabulary-service
   datasource:
-    url: jdbc:mysql://localhost:3306/vocabulary_db
+    url: jdbc:mysql://localhost:3306/vocabulary_db?allowPublicKeyRetrieval=true&useSSL=false
     username: root
-    password: rootpassword
+    password: TaiMar198!
     driver-class-name: com.mysql.cj.jdbc.Driver
     hikari:
       max-lifetime: 1800000
@@ -62,10 +62,21 @@ logging:
     com.joblink.vocabulary: DEBUG
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
+    org.openqa.selenium.devtools.CdpVersionFinder: ERROR
 
 springdoc:
   api-docs:
     path: /api-docs
   swagger-ui:
     path: /swagger-ui.html
+
+tts:
+  storage:
+    path: ${user.home}/audio
+
+whisper:
+  api:
+    url: http://localhost:8000/api/transcribe
+  temp:
+    dir: ${java.io.tmpdir}/whisper
 

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/vocabulary/users/{userId}/progress")
+@RequestMapping("/vocabulary/users/{userId}/progress")
 @RequiredArgsConstructor
 public class LearningProgressController {
     
