@@ -14,12 +14,13 @@
   <properties>
     <java.version>17</java.version>
     <spring-boot.version>3.3.5</spring-boot.version>
-    <spring-cloud.version>2023.0.0</spring-cloud.version>
+    <spring-cloud.version>2023.0.3</spring-cloud.version>
     <resilience4j.version>2.1.0</resilience4j.version>
   </properties>
 
   <modules>
     <module>eureka-server</module>
+    <module>config-service</module>
     <module>api-gateway</module>
     <module>matching-service</module>
     <module>main-service</module>

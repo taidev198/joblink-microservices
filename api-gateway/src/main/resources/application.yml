@@ -1,115 +1,56 @@
-server:
-  port: 8091
-
 spring:
   application:
     name: api-gateway
   cloud:
+    config:
+      enabled: false
     gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
       routes:
-        # Main Service Routes
-        - id: main-service
-          uri: lb://main-service
-          predicates:
-            - Path=/api/main/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: mainServiceBreaker
-                fallbackUri: forward:/fallback/main
-        
-        # Matching Service Routes
-        - id: matching-service
-          uri: lb://matching-service
-          predicates:
-            - Path=/api/matching/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: matchingServiceBreaker
-                fallbackUri: forward:/fallback/matching
-        
-        # Print Service Routes
-        - id: print-service
-          uri: lb://print-service
-          predicates:
-            - Path=/api/print/**
-          filters:
-            - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: printServiceBreaker
-                fallbackUri: forward:/fallback/print
-        
-        # Vocabulary Service Routes
         - id: vocabulary-service
           uri: lb://vocabulary-service
           predicates:
             - Path=/api/vocabulary/**
           filters:
             - StripPrefix=1
-            - name: CircuitBreaker
-              args:
-                name: vocabularyServiceBreaker
-                fallbackUri: forward:/fallback/vocabulary
-      
-      globalcors:
-        corsConfigurations:
-          '[/**]':
-            allowedOrigins: "*"
-            allowedMethods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - PATCH
-              - OPTIONS
-            allowedHeaders: "*"
-            allowCredentials: false
-            maxAge: 3600
+        - id: matching-service
+          uri: lb://matching-service
+          predicates:
+            - Path=/api/matching/**
+          filters:
+            - StripPrefix=1
+        - id: main-service
+          uri: lb://main-service
+          predicates:
+            - Path=/api/main/**
+          filters:
+            - StripPrefix=1
+        - id: print-service
+          uri: lb://print-service
+          predicates:
+            - Path=/api/print/**
+          filters:
+            - StripPrefix=1
+  config:
+    import: optional:configserver:${CONFIG_SERVER_URL:http://localhost:8888/}
+
+server:
+  port: 8091
 
 eureka:
+  instance:
+    prefer-ip-address: true
+    lease-renewal-interval-in-seconds: 30
+    lease-expiration-duration-in-seconds: 90
   client:
     service-url:
-      defaultZone: http://localhost:8761/eureka/
+      defaultZone: ${EUREKA_CLIENT_SERVICE_URL_DEFAULTZONE:http://localhost:8761/eureka/}
     fetch-registry: true
     register-with-eureka: true
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health,info,metrics,gateway
-  endpoint:
-    health:
-      show-details: always
-
-resilience4j:
-  circuitbreaker:
-    configs:
-      default:
-        registerHealthIndicator: true
-        slidingWindowSize: 10
-        minimumNumberOfCalls: 5
-        permittedNumberOfCallsInHalfOpenState: 3
-        automaticTransitionFromOpenToHalfOpenEnabled: true
-        waitDurationInOpenState: 10s
-        failureRateThreshold: 50
-        eventConsumerBufferSize: 10
-    instances:
-      mainServiceBreaker:
-        baseConfig: default
-      matchingServiceBreaker:
-        baseConfig: default
-      printServiceBreaker:
-        baseConfig: default
-      vocabularyServiceBreaker:
-        baseConfig: default
-
-logging:
-  level:
-    org.springframework.cloud.gateway: DEBUG
-    org.springframework.web: INFO
+    registry-fetch-interval-seconds: 30
+    initial-instance-info-replication-interval-seconds: 40
+    instance-info-replication-interval-seconds: 30
 
